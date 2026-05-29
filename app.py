@@ -9,6 +9,23 @@ st.set_page_config(layout="wide", page_title="Lean-Green Decision-Support Framew
 plt.style.use('seaborn-v0_8-whitegrid' if 'seaborn-v0_8-whitegrid' in plt.style.available else 'default')
 plt.rcParams['font.family'] = 'sans-serif'
 
+# --- DYNAMIC SCOPE SCALING (SIDEBAR) ---
+st.sidebar.markdown("---")
+st.sidebar.header("🏗️ Dynamic Scope Scaling")
+st.sidebar.caption("Simulate project scope expansion or reduction.")
+
+sim_piles = st.sidebar.number_input("Total Foundation Piles (Nos)", min_value=50, max_value=1000, value=200, step=10)
+sim_excavation = st.sidebar.number_input("Excavation Volume (m³)", min_value=10000, max_value=250000, value=73308, step=1000)
+sim_area = st.sidebar.number_input("Superstructure/Finishing Base Area (sqm)", min_value=10000, max_value=500000, value=123966, step=1000)
+
+pile_scale = sim_piles / 200.0
+exc_scale = sim_excavation / 73308.0
+area_scale = sim_area / 123966.0
+
+st.sidebar.info(f"**Current Scale Factors:**\n* Piling: {pile_scale:.2f}x\n* Excavation: {exc_scale:.2f}x\n* Superstructure: {area_scale:.2f}x")
+st.sidebar.markdown("---")
+
+
 # --- CO-SIMULATION DATABASE STRATA REGISTRIES FROM EXCEL ---
 piling_activities = [
     '1. Rig Positioning', '2. Boring (0-8m Soil)', '3. Boring (8-18m Rock)', 
@@ -184,7 +201,7 @@ if not r_is_changed:
     r_final_days = r_base_days
     r_final_carbon = r_base_carbon
 
-# Phase 4 Connected Math (Spreadsheet Cross-Sheet Matrix Synchronized)
+# Phase 4 Connected Math
 f_final_days = float(f_days_override) * (0.70 if f_drywall == 'Y' else 1.0)
 f_hoist_daily = 54.0 * (0.65 if f_mep_prefab == 'Y' else 1.0)
 f_hoist_carbon = (f_final_days * f_hoist_daily) * (0.82 / 1000.0)
@@ -198,6 +215,27 @@ if not f_is_changed:
     f_final_days = f_base_days
     f_final_carbon = f_base_carbon
 
+# --- APPLY DYNAMIC SCOPE SCALING FACTORS ---
+p_base_days *= pile_scale
+p_base_carbon *= pile_scale
+p_final_days *= pile_scale
+p_opt_carbon *= pile_scale
+
+e_base_days *= exc_scale
+e_base_carbon *= exc_scale
+e_final_days *= exc_scale
+e_opt_carbon *= exc_scale
+
+r_base_days *= area_scale
+r_base_carbon *= area_scale
+r_final_days *= area_scale
+r_final_carbon *= area_scale
+
+f_base_days *= area_scale
+f_base_carbon *= area_scale
+f_final_days *= area_scale
+f_final_carbon *= area_scale
+
 # Global Accumulator Loops
 total_base_days = p_base_days + e_base_days + r_base_days + f_base_days
 total_base_carbon = p_base_carbon + e_base_carbon + r_base_carbon + f_base_carbon
@@ -205,7 +243,7 @@ total_opt_days = p_final_days + e_final_days + r_final_days + f_final_days
 total_opt_carbon = p_opt_carbon + e_opt_carbon + r_final_carbon + f_final_carbon
 
 # Absolute safety gate for unvaried benchmark synchronization
-if (not p_is_changed) and (not e_is_changed) and (not r_is_changed) and (not f_is_changed):
+if (not p_is_changed) and (not e_is_changed) and (not r_is_changed) and (not f_is_changed) and pile_scale == 1.0 and exc_scale == 1.0 and area_scale == 1.0:
     total_opt_days = total_base_days
     total_opt_carbon = total_base_carbon
 
