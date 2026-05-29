@@ -12,19 +12,30 @@ plt.rcParams['font.family'] = 'sans-serif'
 # --- DYNAMIC SCOPE SCALING (SIDEBAR) ---
 st.sidebar.markdown("---")
 st.sidebar.header("🏗️ Dynamic Scope Scaling")
-st.sidebar.caption("Simulate project scope expansion or reduction.")
+st.sidebar.caption("Simulate multi-variable project scope expansion.")
 
+st.sidebar.markdown("**1. Substructure & Earthworks**")
 sim_piles = st.sidebar.number_input("Total Foundation Piles (Nos)", min_value=50, max_value=1000, value=200, step=10)
-sim_excavation = st.sidebar.number_input("Excavation Volume (m³)", min_value=10000, max_value=250000, value=73308, step=1000)
-sim_area = st.sidebar.number_input("Superstructure/Finishing Base Area (sqm)", min_value=10000, max_value=500000, value=123966, step=1000)
+sim_excavation = st.sidebar.number_input("Mass Excavation Volume (m³)", min_value=10000, max_value=250000, value=73308, step=1000)
 
+st.sidebar.markdown("**2. RCC Superstructure Scope**")
+sim_rcc = st.sidebar.number_input("Concrete Volume (m³)", min_value=5000, max_value=150000, value=35419, step=1000)
+sim_steel = st.sidebar.number_input("Reinforcement Steel (MT)", min_value=500, max_value=15000, value=3542, step=100)
+sim_shuttering = st.sidebar.number_input("Shuttering Contact Area (m²)", min_value=10000, max_value=500000, value=123966, step=1000)
+
+st.sidebar.markdown("**3. Finishing & MEP Scope**")
+sim_plaster = st.sidebar.number_input("Base Plaster Mortar Area (m²)", min_value=10000, max_value=500000, value=123966, step=1000)
+sim_screed = st.sidebar.number_input("Base Screed & Tile Area (m²)", min_value=10000, max_value=500000, value=123966, step=1000)
+sim_mep = st.sidebar.number_input("MEP Shaft Works (Rmts)", min_value=100, max_value=10000, value=1500, step=100)
+
+# Calculate compound scaling factors
 pile_scale = sim_piles / 200.0
 exc_scale = sim_excavation / 73308.0
-area_scale = sim_area / 123966.0
+rcc_scale = (sim_rcc / 35419.0 + sim_steel / 3542.0 + sim_shuttering / 123966.0) / 3.0
+fin_scale = (sim_plaster / 123966.0 + sim_screed / 123966.0 + sim_mep / 1500.0) / 3.0
 
-st.sidebar.info(f"**Current Scale Factors:**\n* Piling: {pile_scale:.2f}x\n* Excavation: {exc_scale:.2f}x\n* Superstructure: {area_scale:.2f}x")
+st.sidebar.info(f"**Calculated Scale Factors:**\n* Piling: {pile_scale:.2f}x\n* Excavation: {exc_scale:.2f}x\n* RCC: {rcc_scale:.2f}x\n* Finishing: {fin_scale:.2f}x")
 st.sidebar.markdown("---")
-
 
 # --- CO-SIMULATION DATABASE STRATA REGISTRIES FROM EXCEL ---
 piling_activities = [
@@ -226,15 +237,15 @@ e_base_carbon *= exc_scale
 e_final_days *= exc_scale
 e_opt_carbon *= exc_scale
 
-r_base_days *= area_scale
-r_base_carbon *= area_scale
-r_final_days *= area_scale
-r_final_carbon *= area_scale
+r_base_days *= rcc_scale
+r_base_carbon *= rcc_scale
+r_final_days *= rcc_scale
+r_final_carbon *= rcc_scale
 
-f_base_days *= area_scale
-f_base_carbon *= area_scale
-f_final_days *= area_scale
-f_final_carbon *= area_scale
+f_base_days *= fin_scale
+f_base_carbon *= fin_scale
+f_final_days *= fin_scale
+f_final_carbon *= fin_scale
 
 # Global Accumulator Loops
 total_base_days = p_base_days + e_base_days + r_base_days + f_base_days
@@ -243,7 +254,7 @@ total_opt_days = p_final_days + e_final_days + r_final_days + f_final_days
 total_opt_carbon = p_opt_carbon + e_opt_carbon + r_final_carbon + f_final_carbon
 
 # Absolute safety gate for unvaried benchmark synchronization
-if (not p_is_changed) and (not e_is_changed) and (not r_is_changed) and (not f_is_changed) and pile_scale == 1.0 and exc_scale == 1.0 and area_scale == 1.0:
+if (not p_is_changed) and (not e_is_changed) and (not r_is_changed) and (not f_is_changed) and abs(pile_scale - 1.0) < 0.01 and abs(exc_scale - 1.0) < 0.01 and abs(rcc_scale - 1.0) < 0.01 and abs(fin_scale - 1.0) < 0.01:
     total_opt_days = total_base_days
     total_opt_carbon = total_base_carbon
 
@@ -272,20 +283,4 @@ axes[0].bar(x_idx - bar_w/2, b_days, bar_w, label='Unoptimized Benchmark Case', 
 axes[0].bar(x_idx + bar_w/2, o_days, bar_w, label='Optimized Framework Output', color='#10B981')
 axes[0].set_title('Schedule Timeline Compression Analysis (Calendar Days)', fontweight='bold', color='#1B365D')
 axes[0].set_xticks(x_idx)
-axes[0].set_xticklabels(phases_lbls, rotation=15, fontweight='bold')
-axes[0].legend()
-for container in axes[0].containers:
-    axes[0].bar_label(container, fmt='%.1fd', padding=3, fontsize=9, fontweight='bold')
-
-b_carb = [p_base_carbon, e_base_carbon, r_base_carbon, f_base_carbon, total_base_carbon]
-o_carb = [p_opt_carbon, e_opt_carbon, r_final_carbon, f_final_carbon, total_opt_carbon]
-axes[1].bar(x_idx - bar_w/2, b_carb, bar_w, label='Unoptimized Benchmark Case', color='#7F8C8D')
-axes[1].bar(x_idx + bar_w/2, o_carb, bar_w, label='Optimized Framework Output', color='#8B5CF6')
-axes[1].set_title('Lifecycle Material Carbon Mitigation Analysis (Tonnes CO2e)', fontweight='bold', color='#1B365D')
-axes[1].set_xticks(x_idx)
-axes[1].set_xticklabels(phases_lbls, rotation=15, fontweight='bold')
-axes[1].legend()
-for container in axes[1].containers:
-    axes[1].bar_label(container, fmt='%.1fT', padding=3, fontsize=9, fontweight='bold')
-
-st.pyplot(fig)
+axes[0].set_xticklabels(phases_lbls, rotation=15,
