@@ -283,4 +283,20 @@ axes[0].bar(x_idx - bar_w/2, b_days, bar_w, label='Unoptimized Benchmark Case', 
 axes[0].bar(x_idx + bar_w/2, o_days, bar_w, label='Optimized Framework Output', color='#10B981')
 axes[0].set_title('Schedule Timeline Compression Analysis (Calendar Days)', fontweight='bold', color='#1B365D')
 axes[0].set_xticks(x_idx)
-axes[0].set_xticklabels(phases_lbls, rotation=15,
+axes[0].set_xticklabels(phases_lbls, rotation=15, fontweight='bold')
+axes[0].legend()
+for container in axes[0].containers:
+    axes[0].bar_label(container, fmt='%.1fd', padding=3, fontsize=9, fontweight='bold')
+
+b_carb = [p_base_carbon, e_base_carbon, r_base_carbon, f_base_carbon, total_base_carbon]
+o_carb = [p_opt_carbon, e_opt_carbon, r_final_carbon, f_final_carbon, total_opt_carbon]
+axes[1].bar(x_idx - bar_w/2, b_carb, bar_w, label='Unoptimized Benchmark Case', color='#7F8C8D')
+axes[1].bar(x_idx + bar_w/2, o_carb, bar_w, label='Optimized Framework Output', color='#8B5CF6')
+axes[1].set_title('Lifecycle Material Carbon Mitigation Analysis (Tonnes CO2e)', fontweight='bold', color='#1B365D')
+axes[1].set_xticks(x_idx)
+axes[1].set_xticklabels(phases_lbls, rotation=15, fontweight='bold')
+axes[1].legend()
+for container in axes[1].containers:
+    axes[1].bar_label(container, fmt='%.1fT', padding=3, fontsize=9, fontweight='bold')
+
+st.pyplot(fig)
